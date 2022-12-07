@@ -1,3 +1,4 @@
+
 kind: PersistentVolume
 apiVersion: v1
 metadata:
@@ -32,10 +33,11 @@ metadata:
   name: pihole-configmap
   namespace: pihole
 data:
-  TZ: "America/Chicago"
-  ADMIN_EMAIL: "<admin@example.com>"
+  TZ: "America/Los_Angeles"
+  ADMIN_EMAIL: "charlie.berman@gmail.com"
   DNS1: "10.43.0.20"
   DNS2: "10.43.0.20"
+  WEB_PORT: "80"
 ---
 apiVersion: v1
 kind: Secret
@@ -43,7 +45,7 @@ metadata:
   name: pihole-secret
   namespace: pihole
 data:
-  WEBPASSWORD: <password-base64-encoded>
+  WEBPASSWORD: "cGlob2xl"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -64,7 +66,7 @@ spec:
     spec:
       containers:
       - name: pihole
-        image: docker.io/pihole/pihole:2021.11
+        image: docker.io/pihole/pihole
         envFrom:
         - configMapRef:
             name: pihole-configmap 
@@ -159,7 +161,7 @@ spec:
 status:
   loadBalancer:
     ingress:
-    - ip: 192.168.10.10
+    - ip: 10.17.84.2
 ---
 apiVersion: v1
 kind: Service
@@ -179,7 +181,28 @@ spec:
 status:
   loadBalancer:
     ingress:
-    - ip: 192.168.10.10
+    - ip: 10.17.84.2
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pihole-ui-ingress
+  namespace: pihole
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+
+spec:
+  rules:
+    - host: pihole.bermanoc.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pihole-ui-svc
+                port:
+                  number: 80
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -200,7 +223,7 @@ spec:
     spec:
       containers:
       - name: unbound
-        image: docker.io/mvance/unbound:1.14.0
+        image: docker.io/mvance/unbound-rpi
         ports:
         - name: svc-53-udp
           containerPort: 53
@@ -235,3 +258,4 @@ spec:
       port: 53
       targetPort: 53
       protocol: TCP
+
